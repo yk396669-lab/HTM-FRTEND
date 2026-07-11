@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORECAST DECK — Prediction Intelligence Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ===== Design Tokens ===== */
+  :root{
+    --bg:#0a0f1a;
+    --bg-alt:#0d1420;
+    --surface:#121a2b;
+    --surface-hi:#17203380;
+    --line:#22304a;
+    --line-soft:#1a2338;
+    --text:#e7ecf5;
+    --text-muted:#8a96ac;
+    --text-dim:#5b6680;
+    --amber:#f5a623;
+    --teal:#2dd4bf;
+    --teal-dim:#2dd4bf33;
+    --amber-dim:#f5a62333;
+    --red-flag:#ef6d6d;
+
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none;}
+  ::selection{background:var(--amber-dim);color:var(--amber);}
+
+  /* focus visibility */
+  a:focus-visible, button:focus-visible, input:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:3px;
+    border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+
+  /* ===== Ambient background canvas ===== */
+  #bg-canvas{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    opacity:0.35;
+    pointer-events:none;
+  }
+
+  .grid-overlay{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 70%);
+    pointer-events:none;
+    opacity:0.5;
+  }
+
+  /* ===== Header ===== */
+  header{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 48px;
+    background:rgba(10,15,26,0.72);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:1.15rem;
+    letter-spacing:0.02em;
+  }
+  .logo .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--teal);
+    box-shadow:0 0 12px var(--teal);
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1; transform:scale(1);}
+    50%{opacity:0.5; transform:scale(0.8);}
+  }
+  .logo span.tag{
+    font-family:var(--font-mono);
+    font-size:0.65rem;
+    color:var(--text-dim);
+    font-weight:400;
+    border:1px solid var(--line);
+    padding:2px 7px;
+    border-radius:20px;
+    margin-left:4px;
+  }
+  nav{display:flex;gap:36px;align-items:center;}
+  nav a{
+    font-size:0.88rem;
+    color:var(--text-muted);
+    font-weight:500;
+    transition:color 0.2s;
+    position:relative;
+  }
+  nav a:hover{color:var(--text);}
+  nav a::after{
+    content:'';
+    position:absolute;
+    left:0; bottom:-6px;
+    width:0; height:1px;
+    background:var(--teal);
+    transition:width 0.25s;
+  }
+  nav a:hover::after{width:100%;}
+  .nav-status{
+    display:flex;align-items:center;gap:7px;
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    color:var(--teal);
+    border:1px solid var(--teal-dim);
+    background:rgba(45,212,191,0.06);
+    padding:6px 12px;
+    border-radius:20px;
+  }
+  .nav-status .blip{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--teal);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+
+  /* ===== Hero ===== */
+  .hero{
+    position:relative;
+    z-index:1;
+    padding:110px 48px 90px;
+    max-width:1180px;
+    margin:0 auto;
+  }
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:0.78rem;
+    color:var(--amber);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:26px;height:1px;
+    background:var(--amber);
+  }
+  .hero h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:clamp(2.4rem, 5vw, 4.4rem);
+    line-height:1.06;
+    letter-spacing:-0.02em;
+    max-width:900px;
+  }
+  .hero h1 .accent{
+    color:var(--teal);
+    font-style:normal;
+  }
+  .hero p.lede{
+    margin-top:26px;
+    max-width:560px;
+    color:var(--text-muted);
+    font-size:1.05rem;
+  }
+  .hero-cta{
+    margin-top:38px;
+    display:flex;
+    gap:16px;
+    align-items:center;
+  }
+  .btn{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:0.92rem;
+    padding:13px 26px;
+    border-radius:8px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:all 0.2s ease;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .btn-primary{
+    background:var(--teal);
+    color:#06110f;
+  }
+  .btn-primary:hover{
+    box-shadow:0 0 24px var(--teal-dim);
+    transform:translateY(-1px);
+  }
+  .btn-ghost{
+    border-color:var(--line);
+    color:var(--text-muted);
+  }
+  .btn-ghost:hover{
+    border-color:var(--teal);
+    color:var(--text);
+  }
+
+  /* hero chart signature element */
+  .hero-chart{
+    margin-top:64px;
+    border:1px solid var(--line-soft);
+    border-radius:14px;
+    background:linear-gradient(180deg, rgba(18,26,43,0.6), rgba(13,20,32,0.3));
+    padding:0;
+    overflow:hidden;
+    position:relative;
+  }
+  .hero-chart .chart-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 22px;
+    border-bottom:1px solid var(--line-soft);
+    font-family:var(--font-mono);
+    font-size:0.75rem;
+    color:var(--text-dim);
+  }
+  .hero-chart .chart-head b{color:var(--text);font-weight:500;}
+  .hero-chart svg{display:block;width:100%;height:auto;}
+
+  /* ===== Section shell ===== */
+  section{
+    position:relative;
+    z-index:1;
+    max-width:1180px;
+    margin:0 auto;
+    padding:70px 48px;
+  }
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:44px;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+  .section-head h2{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:1.9rem;
+    letter-spacing:-0.01em;
+  }
+  .section-head p{
+    color:var(--text-muted);
+    max-width:420px;
+    font-size:0.95rem;
+  }
+
+  /* ===== Module cards ===== */
+  .modules{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:22px;
+  }
+  @media (max-width:980px){
+    .modules{grid-template-columns:1fr;}
+  }
+
+  .card{
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:26px 24px 24px;
+    display:flex;
+    flex-direction:column;
+    min-height:340px;
+    transition:transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    cursor:pointer;
+    overflow:hidden;
+  }
+  .card::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;height:2px;
+    background:var(--card-accent, var(--teal));
+    transform:scaleX(0);
+    transform-origin:left;
+    transition:transform 0.3s ease;
+  }
+  .card:hover{
+    transform:translateY(-4px);
+    border-color:var(--card-accent, var(--teal));
+    box-shadow:0 18px 40px -18px rgba(0,0,0,0.6);
+  }
+  .card:hover::before{transform:scaleX(1);}
+
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  .card-icon{
+    width:44px;height:44px;
+    border-radius:10px;
+    background:var(--card-accent-dim, var(--teal-dim));
+    display:flex;align-items:center;justify-content:center;
+    color:var(--card-accent, var(--teal));
+  }
+  .card-icon svg{width:22px;height:22px;}
+
+  .status-pill{
+    font-family:var(--font-mono);
+    font-size:0.66rem;
+    letter-spacing:0.04em;
+    padding:4px 9px;
+    border-radius:20px;
+    display:flex;align-items:center;gap:6px;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+  }
+  .status-pill .dot{width:5px;height:5px;border-radius:50%;background:var(--text-dim);}
+  .status-pill.live{color:var(--teal);border-color:var(--teal-dim);background:rgba(45,212,191,0.06);}
+  .status-pill.live .dot{background:var(--teal);animation:pulse 1.6s ease-in-out infinite;}
+
+  .card h3{
+    font-family:var(--font-display);
+    font-size:1.25rem;
+    font-weight:600;
+    margin-top:20px;
+  }
+  .card p.desc{
+    color:var(--text-muted);
+    font-size:0.9rem;
+    margin-top:10px;
+    flex-grow:1;
+  }
+  .card .port{
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    color:var(--text-dim);
+    margin-top:14px;
+  }
+  .card .launch{
+    margin-top:18px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.85rem;
+    font-weight:600;
+    color:var(--card-accent, var(--teal));
+  }
+  .card .launch svg{
+    width:14px;height:14px;
+    transition:transform 0.2s;
+  }
+  .card:hover .launch svg{transform:translate(3px,-3px);}
+
+  .card[data-card="stock"]{ --card-accent:var(--teal); --card-accent-dim:var(--teal-dim); }
+  .card[data-card="chat"]{ --card-accent:var(--amber); --card-accent-dim:var(--amber-dim); }
+  .card[data-card="growth"]{ --card-accent:#c084fc; --card-accent-dim:#c084fc33; }
+
+  /* ===== Chat panel (inline, expands from chat card) ===== */
+  .chat-panel{
+    grid-column:1 / -1;
+    max-height:0;
+    overflow:hidden;
+    transition:max-height 0.4s ease;
+  }
+  .chat-panel.open{max-height:560px;}
+  .chat-box{
+    margin-top:22px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--surface);
+    display:flex;
+    flex-direction:column;
+    height:460px;
+  }
+  .chat-box .chat-header{
+    padding:14px 20px;
+    border-bottom:1px solid var(--line-soft);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-family:var(--font-mono);
+    font-size:0.75rem;
+    color:var(--text-dim);
+  }
+  .chat-messages{
+    flex:1;
+    overflow-y:auto;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .msg{
+    max-width:72%;
+    padding:11px 15px;
+    border-radius:12px;
+    font-size:0.9rem;
+    line-height:1.5;
+  }
+  .msg.bot{
+    background:var(--bg-alt);
+    border:1px solid var(--line-soft);
+    align-self:flex-start;
+    border-bottom-left-radius:2px;
+  }
+  .msg.user{
+    background:var(--amber);
+    color:#1a1206;
+    align-self:flex-end;
+    border-bottom-right-radius:2px;
+    font-weight:500;
+  }
+  .chat-input-row{
+    display:flex;
+    gap:10px;
+    padding:16px;
+    border-top:1px solid var(--line-soft);
+  }
+  .chat-input-row input{
+    flex:1;
+    background:var(--bg-alt);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:12px 14px;
+    border-radius:10px;
+    font-family:var(--font-body);
+    font-size:0.9rem;
+  }
+  .chat-input-row input::placeholder{color:var(--text-dim);}
+  .chat-input-row button{
+    background:var(--amber);
+    color:#1a1206;
+    border:none;
+    padding:0 20px;
+    border-radius:10px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  /* ===== How it works strip ===== */
+  .strip{
+    border-top:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft);
+    background:var(--bg-alt);
+  }
+  .strip-inner{
+    max-width:1180px;
+    margin:0 auto;
+    padding:44px 48px;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:32px;
+  }
+  @media (max-width:900px){ .strip-inner{grid-template-columns:1fr;} }
+  .strip-item{
+    display:flex;
+    gap:16px;
+  }
+  .strip-item .num{
+    font-family:var(--font-mono);
+    font-size:0.8rem;
+    color:var(--text-dim);
+    padding-top:2px;
+  }
+  .strip-item h4{
+    font-family:var(--font-display);
+    font-size:1rem;
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .strip-item p{font-size:0.85rem;color:var(--text-muted);}
+
+  /* ===== Config note ===== */
+  .config-note{
+    max-width:1180px;
+    margin:0 auto;
+    padding:0 48px 60px;
+  }
+  .config-box{
+    border:1px dashed var(--line);
+    border-radius:12px;
+    padding:20px 24px;
+    font-family:var(--font-mono);
+    font-size:0.78rem;
+    color:var(--text-dim);
+    background:rgba(255,255,255,0.015);
+  }
+  .config-box b{color:var(--amber);font-weight:600;}
+
+  /* ===== Footer ===== */
+  footer{
+    position:relative;
+    z-index:1;
+    border-top:1px solid var(--line-soft);
+    padding:56px 48px 32px;
+  }
+  .footer-grid{
+    max-width:1180px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1.4fr 1fr 1fr 1fr;
+    gap:40px;
+    padding-bottom:40px;
+  }
+  @media (max-width:820px){ .footer-grid{grid-template-columns:1fr 1fr;} }
+  .footer-brand p{
+    color:var(--text-muted);
+    font-size:0.85rem;
+    margin-top:14px;
+    max-width:280px;
+  }
+  .footer-col h5{
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:14px;
+  }
+  .footer-col a{
+    display:block;
+    color:var(--text-muted);
+    font-size:0.85rem;
+    margin-bottom:10px;
+    transition:color 0.2s;
+  }
+  .footer-col a:hover{color:var(--teal);}
+  .footer-bottom{
+    max-width:1180px;
+    margin:0 auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding-top:28px;
+    border-top:1px solid var(--line-soft);
+    font-size:0.78rem;
+    color:var(--text-dim);
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .footer-bottom .disclaimer{max-width:640px;}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="grid-overlay"></div>
+
+<header>
+  <div class="logo">
+    <span class="dot"></span>
+    FORECAST&nbsp;DECK
+    <span class="tag">v1.0</span>
+  </div>
+  <nav>
+    <a href="#modules">Modules</a>
+    <a href="#chat">Assistant</a>
+    <a href="#how">How it works</a>
+    <div class="nav-status"><span class="blip"></span> 3 MODELS ONLINE</div>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Prediction Intelligence Hub</div>
+  <h1>Three models. One deck.<br>Every forecast <span class="accent">in view.</span></h1>
+  <p class="lede">A single command center for your machine learning tools — market forecasting, an on-page assistant, and growth trajectory modeling, launched from wherever you're already working.</p>
+  <div class="hero-cta">
+    <a href="#modules" class="btn btn-primary">Enter the deck →</a>
+    <a href="#how" class="btn btn-ghost">How it connects</a>
+  </div>
+
+  <div class="hero-chart">
+    <div class="chart-head">
+      <span><b>SIGNAL</b> — composite forecast trace</span>
+      <span>t&minus;90d → t+30d</span>
+    </div>
+    <svg id="hero-svg" viewBox="0 0 1080 260" preserveAspectRatio="none"></svg>
+  </div>
+</section>
+
+<section id="modules">
+  <div class="section-head">
+    <div>
+      <h2>Your models, one click away</h2>
+      <p>Each tile is a live local service. Click a card to open its running instance in a new tab.</p>
+    </div>
+  </div>
+
+  <div class="modules">
+
+    <div class="card" data-card="stock" id="card-stock" tabindex="0" role="link" aria-label="Open stock predictor">
+      <div class="card-top">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+        </div>
+        <div class="status-pill live"><span class="dot"></span>LIVE</div>
+      </div>
+      <h3>Stock Predictor</h3>
+      <p class="desc">Time-series forecasting model trained on historical price action. Enter a ticker and get short-horizon price projections with confidence bands.</p>
+      <div class="port">streamlit · localhost:8501</div>
+      <div class="launch">Launch model <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div>
+    </div>
+
+    <div class="card" data-card="chat" id="card-chat" tabindex="0" role="button" aria-expanded="false" aria-controls="chat-panel">
+      <div class="card-top">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="status-pill live"><span class="dot"></span>LIVE</div>
+      </div>
+      <h3>Analyst Assistant</h3>
+      <p class="desc">An on-page chat assistant for quick questions about your forecasts, model outputs, or how to read the charts. Opens right here, no new tab.</p>
+      <div class="port">inline · this page</div>
+      <div class="launch">Open assistant <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+
+    <div class="card" data-card="growth" id="card-growth" tabindex="0" role="link" aria-label="Open growth training and predictor">
+      <div class="card-top">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        </div>
+        <div class="status-pill live"><span class="dot"></span>LIVE</div>
+      </div>
+      <h3>Growth Training &amp; Predictor</h3>
+      <p class="desc">Trains a growth-trajectory model on your dataset in real time, then projects forward. Watch training progress and inspect the resulting curve.</p>
+      <div class="port">streamlit · localhost:8502</div>
+      <div class="launch">Launch model <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div>
+    </div>
+
+    <div class="chat-panel" id="chat-panel">
+      <div class="chat-box">
+        <div class="chat-header">
+          <span>ANALYST&nbsp;ASSISTANT — session active</span>
+          <span id="chat-close" style="cursor:pointer;color:var(--text-dim);">close ✕</span>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg bot">Hi — I'm your analyst assistant. Ask me about the stock predictor, the growth model, or how to read a forecast chart.</div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Ask something…" autocomplete="off">
+          <button id="chat-send">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="strip" id="how">
+  <div class="strip-inner">
+    <div class="strip-item">
+      <div class="num">01</div>
+      <div>
+        <h4>Models run locally</h4>
+        <p>The predictor and growth tiles point at Streamlit apps running on your machine. Start those servers first, then click through.</p>
+      </div>
+    </div>
+    <div class="strip-item">
+      <div class="num">02</div>
+      <div>
+        <h4>This page is the front door</h4>
+        <p>It doesn't run any ML itself — it's a launcher and a light assistant, so your model tabs stay clean and separate.</p>
+      </div>
+    </div>
+    <div class="strip-item">
+      <div class="num">03</div>
+      <div>
+        <h4>Ports are configurable</h4>
+        <p>Edit the URLs at the top of the script tag below if your Streamlit apps run on different ports.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="config-note">
+  <div class="config-box">
+    <b>// config</b> — this page expects Streamlit apps at <b>localhost:8501</b> (Stock Predictor) and <b>localhost:8502</b> (Growth Training &amp; Predictor). Change <b>STOCK_URL</b> / <b>GROWTH_URL</b> near the bottom of this file to match your setup. The assistant card is inline and doesn't need a port — wire <b>CHATBOT_API_URL</b> to your own backend if you have one; otherwise it runs a lightweight local demo.
+  </div>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo"><span class="dot"></span>FORECAST&nbsp;DECK</div>
+      <p>A single, professional front door for your local prediction models — built to sit in front of Streamlit apps without getting in their way.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Modules</h5>
+      <a href="#" id="foot-stock">Stock Predictor</a>
+      <a href="#" id="foot-chat">Analyst Assistant</a>
+      <a href="#" id="foot-growth">Growth Predictor</a>
+    </div>
+    <div class="footer-col">
+      <h5>Reference</h5>
+      <a href="#how">How it connects</a>
+      <a href="#modules">All modules</a>
+    </div>
+    <div class="footer-col">
+      <h5>Status</h5>
+      <a>Stock model — port 8501</a>
+      <a>Growth model — port 8502</a>
+      <a>Assistant — inline</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Forecast Deck.</span>
+    <span class="disclaimer">Forecasts are model outputs, not financial advice. Verify independently before acting on any prediction.</span>
+  </div>
+</footer>
+
+<script>
+  // ===== CONFIG — edit these to match your local setup =====
+  const STOCK_URL   = "http://localhost:8501";
+  const GROWTH_URL  = "http://localhost:8502";
+  const CHATBOT_API_URL = ""; // e.g. "http://localhost:8000/chat" — leave blank to use local demo replies
+
+  // ===== Card click / keyboard handling =====
+  function openInNewTab(url){ window.open(url, "_blank", "noopener"); }
+
+  const stockCard = document.getElementById('card-stock');
+  const growthCard = document.getElementById('card-growth');
+  const chatCard = document.getElementById('card-chat');
+  const chatPanel = document.getElementById('chat-panel');
+  const chatClose = document.getElementById('chat-close');
+
+  function activate(el, fn){
+    el.addEventListener('click', fn);
+    el.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fn(); } });
+  }
+
+  activate(stockCard, () => openInNewTab(STOCK_URL));
+  activate(growthCard, () => openInNewTab(GROWTH_URL));
+
+  function toggleChat(){
+    const isOpen = chatPanel.classList.toggle('open');
+    chatCard.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if(isOpen){ chatPanel.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  }
+  activate(chatCard, toggleChat);
+  chatClose.addEventListener('click', (e) => { e.stopPropagation(); chatPanel.classList.remove('open'); chatCard.setAttribute('aria-expanded','false'); });
+
+  document.getElementById('foot-stock').addEventListener('click', e => { e.preventDefault(); openInNewTab("http://localhost:8501/"); });
+  document.getElementById('foot-growth').addEventListener('click', e => { e.preventDefault(); openInNewTab(GROWTH_URL); });
+  document.getElementById('foot-chat').addEventListener('click', e => { e.preventDefault(); if(!chatPanel.classList.contains('open')) toggleChat(); document.getElementById('chat-panel').scrollIntoView({behavior:'smooth'}); });
+
+  // ===== Chat logic =====
+  const chatMessages = document.getElementById('chat-messages');
+  const chatInput = document.getElementById('chat-input');
+  const chatSend = document.getElementById('chat-send');
+
+  function addMsg(text, who){
+    const div = document.createElement('div');
+    div.className = 'msg ' + who;
+    div.textContent = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function demoReply(text){
+    const t = text.toLowerCase();
+    if(t.includes('stock')) return "The Stock Predictor tile opens your Streamlit forecasting app at " + STOCK_URL + ". Enter a ticker there to see projected price bands.";
+    if(t.includes('growth')) return "The Growth Training & Predictor tile opens " + GROWTH_URL + ". It retrains on your dataset and plots the projected trajectory.";
+    if(t.includes('port') || t.includes('config') || t.includes('url')) return "You can change the ports in the config block near the bottom of this page's source — look for STOCK_URL and GROWTH_URL.";
+    if(t.includes('hello') || t.includes('hi')) return "Hey! Ask me about either model, or how the ports are configured.";
+    return "Got it — noted: \"" + text + "\". Wire CHATBOT_API_URL in the config to connect me to a real backend for smarter answers.";
+  }
+
+  async function sendMessage(){
+    const text = chatInput.value.trim();
+    if(!text) return;
+    addMsg(text, 'user');
+    chatInput.value = '';
+
+    if(CHATBOT_API_URL){
+      try{
+        const res = await fetch(CHATBOT_API_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        addMsg(data.reply || JSON.stringify(data), 'bot');
+        return;
+      }catch(err){
+        addMsg("(couldn't reach chatbot backend — showing a local demo reply instead) " + demoReply(text), 'bot');
+        return;
+      }
+    }
+    setTimeout(() => addMsg(demoReply(text), 'bot'), 380);
+  }
+
+  chatSend.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+
+  // ===== Hero signature chart: animated forecast line =====
+  (function(){
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.getElementById('hero-svg');
+    const W = 1080, H = 260;
+    const points = 40;
+    let data = [];
+    let seed = 130;
+    for(let i=0;i<points;i++){
+      seed += (Math.random()-0.45) * 14;
+      seed = Math.max(60, Math.min(220, seed));
+      data.push(seed);
+    }
+
+    function pathFrom(arr){
+      const stepX = W / (arr.length - 1);
+      let d = "M0," + (H - arr[0]);
+      for(let i=1;i<arr.length;i++){
+        const x = i*stepX;
+        const y = H - arr[i];
+        const prevX = (i-1)*stepX;
+        const prevY = H - arr[i-1];
+        const cx = (prevX + x)/2;
+        d += ` Q${prevX},${prevY} ${cx},${(prevY+y)/2}`;
+      }
+      return d;
+    }
+
+    const gridLines = [];
+    for(let i=1;i<5;i++){
+      const y = (H/5)*i;
+      gridLines.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#1a2338" stroke-width="1"/>`);
+    }
+
+    const splitX = W * 0.72;
+
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="#2dd4bf" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="fillGradFuture" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f5a623" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#f5a623" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${gridLines.join('')}
+      <line x1="${splitX}" y1="0" x2="${splitX}" y2="${H}" stroke="#22304a" stroke-width="1" stroke-dasharray="3,4"/>
+      <path id="areaPath" d="" fill="url(#fillGrad)" stroke="none"/>
+      <path id="linePath" d="" fill="none" stroke="#2dd4bf" stroke-width="2.5"/>
+      <path id="futurePath" d="" fill="none" stroke="#f5a623" stroke-width="2" stroke-dasharray="5,5"/>
+      <circle id="headDot" r="4.5" fill="#2dd4bf"/>
+    `;
+
+    function render(){
+      const linePath = document.getElementById('linePath');
+      const areaPath = document.getElementById('areaPath');
+      const futurePath = document.getElementById('futurePath');
+      const headDot = document.getElementById('headDot');
+
+      const d = pathFrom(data);
+      linePath.setAttribute('d', d);
+      areaPath.setAttribute('d', d + ` L${W},${H} L0,${H} Z`);
+
+      const lastVal = data[data.length-1];
+      const secondLast = data[data.length-2];
+      const trend = lastVal - secondLast;
+      const futureX2 = W + 60;
+      const futureY2 = H - Math.max(40, Math.min(230, lastVal + trend*4 + (Math.random()-0.5)*20));
+      futurePath.setAttribute('d', `M${W},${H-lastVal} Q${W+30},${H-lastVal} ${futureX2},${futureY2}`);
+
+      headDot.setAttribute('cx', W);
+      headDot.setAttribute('cy', H - lastVal);
+    }
+
+    render();
+
+    setInterval(() => {
+      data.shift();
+      let next = data[data.length-1] + (Math.random()-0.48) * 16;
+      next = Math.max(50, Math.min(230, next));
+      data.push(next);
+      render();
+    }, 1400);
+  })();
+
+  // ===== Ambient background canvas: slow drifting sparklines =====
+  (function(){
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let w, h;
+    function resize(){
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = document.documentElement.scrollHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const lines = [];
+    const lineCount = 5;
+    for(let i=0;i<lineCount;i++){
+      lines.push({
+        y: Math.random()*h,
+        amp: 20 + Math.random()*40,
+        freq: 0.002 + Math.random()*0.003,
+        speed: 0.15 + Math.random()*0.25,
+        offset: Math.random()*1000,
+        color: i % 2 === 0 ? '45,212,191' : '245,166,35',
+        opacity: 0.04 + Math.random()*0.05
+      });
+    }
+
+    function draw(t){
+      ctx.clearRect(0,0,w,h);
+      lines.forEach(line => {
+        ctx.beginPath();
+        for(let x=0; x<=w; x+=8){
+          const y = line.y + Math.sin((x*line.freq) + (t*0.0002*line.speed) + line.offset) * line.amp;
+          if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.strokeStyle = `rgba(${line.color}, ${line.opacity})`;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      });
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  })();
+</script>
+
+</body>
+</html>
